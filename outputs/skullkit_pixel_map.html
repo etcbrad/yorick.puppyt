@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Skullkit Pixel Map</title>
+<style>
+body{margin:0;background:#17151b;color:#eee;font:13px system-ui;display:flex;gap:16px;padding:12px;box-sizing:border-box;min-height:100vh}
+canvas{display:block;background:#faf8f4;box-shadow:0 6px 30px #0008}
+#side{width:300px;display:flex;flex-direction:column;gap:8px}
+button{background:#31233f;color:#fff;border:1px solid #7654a0;border-radius:5px;padding:6px 8px;cursor:pointer}
+#list div{padding:3px 6px;border:1px solid #3a2d4d;margin:2px 0;border-radius:4px;cursor:pointer;background:#241d2b;font-size:12px;display:flex;align-items:center;gap:6px}
+#list div.sel{outline:2px solid #b58be0}
+#list i{width:12px;height:12px;display:inline-block;border:1px solid #000}
+#info{background:#241d2b;border:1px solid #7654a0;border-radius:5px;padding:8px;min-height:60px;white-space:pre}
+textarea{width:100%;height:120px;background:#111;color:#ddd;border:1px solid #555;font:12px monospace}
+#status{color:#c9b5dc;font-size:12px}
+</style></head><body>
+<div><canvas id="c"></canvas><div id="status">Skullbone zone 20 x 28 cells. 1 cell = 1 pyxl. Click to select, drag to move (snaps to cells). Arrows nudge (Shift = 5). Ctrl+Z undo.</div></div>
+<div id="side">
+<div style="display:flex;flex-wrap:wrap;gap:6px"><button id="grid">Grid</button><button id="undo">Undo</button><button id="reset">Reset</button><button id="copy">Copy pose</button></div>
+<div id="info">Nothing selected.</div><div id="list"></div><textarea id="out" placeholder="Copied pose appears here"></textarea>
+</div>
+<script>
+const DATA=[{"id": 1, "name": "Skullbone", "group": "skull", "x": 15, "y": 16, "w": 20, "h": 28, "color": "#7410c7"}, {"id": 2, "name": "Forehead", "group": "face", "x": 18, "y": 16, "w": 14, "h": 13, "color": "#9556c7"}, {"id": 3, "name": "Browside", "group": "eye", "x": 19, "y": 27, "w": 4, "h": 2, "color": "#7040a8"}, {"id": 4, "name": "Socket", "group": "eye", "x": 18, "y": 28, "w": 6, "h": 5, "color": "#3a1466"}, {"id": 5, "name": "Browside", "group": "eye", "x": 18, "y": 27, "w": 4, "h": 3, "color": "#7040a8"}, {"id": 6, "name": "Browside", "group": "eye", "x": 27, "y": 27, "w": 4, "h": 2, "color": "#7040a8"}, {"id": 7, "name": "Browside", "group": "eye", "x": 28, "y": 27, "w": 4, "h": 3, "color": "#7040a8"}, {"id": 8, "name": "Cheekside", "group": "eye", "x": 16, "y": 28, "w": 2, "h": 4, "color": "#5a3a8a"}, {"id": 9, "name": "Nasalside", "group": "eye", "x": 22, "y": 28, "w": 2, "h": 5, "color": "#5b4ac4"}, {"id": 10, "name": "Furlbone", "group": "face", "x": 23, "y": 28, "w": 4, "h": 4, "color": "#8d48b8"}, {"id": 11, "name": "Nasalside", "group": "eye", "x": 26, "y": 28, "w": 2, "h": 5, "color": "#5b4ac4"}, {"id": 12, "name": "Socket", "group": "eye", "x": 26, "y": 28, "w": 6, "h": 5, "color": "#3a1466"}, {"id": 13, "name": "Cheekbone", "group": "cheek", "x": 23, "y": 30, "w": 11, "h": 6, "color": "#7f4aa3"}, {"id": 14, "name": "Cheekside", "group": "eye", "x": 32, "y": 28, "w": 2, "h": 4, "color": "#5a3a8a"}, {"id": 15, "name": "Cheekbone", "group": "cheek", "x": 16, "y": 30, "w": 11, "h": 6, "color": "#7f4aa3"}, {"id": 16, "name": "Nosepin", "group": "nose", "x": 25, "y": 30, "w": 1, "h": 6, "color": "#6a2a9a"}, {"id": 17, "name": "Bottomside", "group": "eye", "x": 18, "y": 32, "w": 5, "h": 2, "color": "#7046a8"}, {"id": 18, "name": "Noseside", "group": "nose", "x": 21, "y": 31, "w": 4, "h": 4, "color": "#8050aa"}, {"id": 19, "name": "Nodeside", "group": "nose", "x": 25, "y": 31, "w": 4, "h": 4, "color": "#8050aa"}, {"id": 20, "name": "Nosesocket", "group": "nose", "x": 22, "y": 32, "w": 6, "h": 4, "color": "#222222"}, {"id": 21, "name": "Bottomside", "group": "eye", "x": 27, "y": 32, "w": 5, "h": 2, "color": "#7046a8"}, {"id": 22, "name": "ThroAtbone", "group": "throat", "x": 22, "y": 33, "w": 7, "h": 7, "color": "#4b0082"}, {"id": 23, "name": "Cheekhollow", "group": "shadow", "x": 18, "y": 34, "w": 7, "h": 6, "color": "#51406b"}, {"id": 24, "name": "Cheekhollow", "group": "shadow", "x": 25, "y": 34, "w": 7, "h": 6, "color": "#51406b"}, {"id": 25, "name": "Jowl", "group": "jaw", "x": 18, "y": 35, "w": 5, "h": 8, "color": "#70407f"}, {"id": 26, "name": "Upperlip", "group": "mouth", "x": 21, "y": 35, "w": 9, "h": 4, "color": "#a65bd0"}, {"id": 27, "name": "Jowl", "group": "jaw", "x": 27, "y": 35, "w": 5, "h": 8, "color": "#70407f"}, {"id": 28, "name": "Topteeth", "group": "mouth", "x": 21, "y": 38, "w": 8, "h": 2, "color": "#ffffff"}, {"id": 29, "name": "Bottom Tooth", "group": "mouth", "x": 22, "y": 39, "w": 7, "h": 2, "color": "#ffffff"}, {"id": 30, "name": "Chin", "group": "jaw", "x": 20, "y": 40, "w": 10, "h": 4, "color": "#5746aa"}], JOINTS=[{"name": "Anchor A", "x": 25.07, "y": 40.27}, {"name": "Anchor B", "x": 25.09, "y": 43.21}, {"name": "Anchor C", "x": 25.12, "y": 42.47}, {"name": "Anchor D", "x": 25.12, "y": 42.59}], SKULL=[".......######.......", ".....#########.....", "...#############...", ".##################.", ".##################.", "####################", "####################", "####################", "####################", "####################", "####################", "####################", "####################", "####################", "####################", "####################", ".##################.", ".##################.", "..################..", "..###############...", "...#############....", "...#############....", "...#############....", "...#############....", "....###########.....", "....###########.....", "......#######.......", ".......#####........"];
+const W=50,H=60,S=14,OX=15,OY=16;
+const cv=document.getElementById('c');cv.width=W*S;cv.height=H*S;
+const x=cv.getContext('2d');x.imageSmoothingEnabled=false;
+let pieces=JSON.parse(JSON.stringify(DATA)),joints=JSON.parse(JSON.stringify(JOINTS)),sel=null,drag=null,grid=true,hist=[];
+const ORIGIN=JSON.stringify({p:DATA,j:JOINTS});
+function hex(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+function dark(h,k){const c=hex(h);return'rgb('+c.map(v=>Math.round(v*k)).join(',')+')'}
+function inEll(i,j,w,h){const a=w/2,b=h/2,dx=(i+.5-a)/a,dy=(j+.5-b)/b;return dx*dx+dy*dy<=1}
+function cut(i,j,w,h){return !(w>=4&&h>=4&&(i===0||i===w-1)&&(j===0||j===h-1))}
+// cell kind: 0 empty, 1 fill, 2 edge, 3 inner/hollow
+function kind(p,i,j){const n=p.name,w=p.w,h=p.h;
+ if(n==='Skullbone'){const r=SKULL[j];if(!r)return 0;return r[i<10?i:19-i]==='#'?1:0}
+ if(n==='Furlbone'){return['#..#','.##.','.##.','#..#'][j][i]==='#'?1:0}
+ if(n==='Nosesocket'){const rw=Math.max(1,Math.round(w*(j+1)/h));const st=Math.floor((w-rw)/2);if(!(i>=st&&i<st+rw))return 0;return(i===st||i===st+rw-1||j===h-1)?2:3}
+ if(n==='Nosepin'){return j===0||j===h-1?2:1}
+ if(n==='Socket'){if(!inEll(i,j,w,h))return 0;return inEll(i,j,w-2,h-2)?3:2}
+ if(n==='ThroAtbone'){if(!cut(i,j,w,h))return 0;return(i>0&&j>0&&i<w-1&&j<h-1)?3:2}
+ if(n==='Forehead'||n==='Upperlip'||n==='Chin'){if(!cut(i,j,w,h))return 0;return(i===0||j===0||i===w-1||j===h-1)?2:1}
+ if(n==='Topteeth'||n==='Bottom Tooth'){if(!cut(i,j,w,h))return 0;return(j===0||j===h-1)?2:1}
+ if(!inEll(i,j,w,h))return 0;return inEll(i,j,w-1,h-1)?1:2}
+function colorFor(p,k,j){const f=p.color;
+ if(p.name==='Nosepin'){const g=['#6a2a9a','#5f2490','#541f83','#481a76','#3d1568','#35105c'];return k===2?'#000':g[Math.min(j,5)]}
+ if(p.name==='Topteeth'||p.name==='Bottom Tooth'){return k===2?'#35105c':'#ffffff'}
+ if(k===2)return dark(f,.45);if(k===3)return'#000';return f}
+function drawSkull(){x.fillStyle='rgba(116,16,199,0.12)';for(let j=0;j<28;j++){const r=SKULL[j];for(let i=0;i<10;i++){if(r[i]==='#'){x.fillRect((OX+i)*S,(OY+j)*S,S,S);x.fillRect((OX+19-i)*S,(OY+j)*S,S,S)}}}}
+function drawPiece(p){for(let j=0;j<p.h;j++)for(let i=0;i<p.w;i++){const k=kind(p,i,j);if(!k)continue;x.fillStyle=colorFor(p,k,j);x.fillRect((p.x+i)*S,(p.y+j)*S,S,S)}}
+function draw(){x.fillStyle='#faf8f4';x.fillRect(0,0,cv.width,cv.height);drawSkull();
+ pieces.forEach(drawPiece);
+ pieces.forEach(p=>{if(p.id===sel){x.strokeStyle='#5a3a8a';x.lineWidth=2;x.strokeRect(p.x*S+1,p.y*S+1,p.w*S-2,p.h*S-2)}});
+ x.strokeStyle='rgba(228,71,166,0.45)';x.setLineDash([4,4]);x.beginPath();x.moveTo(25*S+.5,OY*S);x.lineTo(25*S+.5,(OY+28)*S);x.stroke();x.setLineDash([]);
+ joints.forEach(j=>{x.fillStyle='#8d48b8';x.beginPath();x.arc(j.x*S,j.y*S,4,0,7);x.fill();x.fillStyle='#40172f';x.font='10px system-ui';x.fillText(j.name,j.x*S+6,j.y*S-4)});
+ if(grid){for(let i=0;i<=W;i++){x.strokeStyle=i%5?'rgba(0,0,0,0.08)':'rgba(0,0,0,0.25)';x.beginPath();x.moveTo(i*S+.5,0);x.lineTo(i*S+.5,H*S);x.stroke()}for(let i=0;i<=H;i++){x.strokeStyle=i%5?'rgba(0,0,0,0.08)':'rgba(0,0,0,0.25)';x.beginPath();x.moveTo(0,i*S+.5);x.lineTo(W*S,i*S+.5);x.stroke()}}}
+function cell(e){const r=cv.getBoundingClientRect();return[Math.floor((e.clientX-r.left)/S),Math.floor((e.clientY-r.top)/S)]}
+function list(){const L=document.getElementById('list');L.innerHTML='';[...pieces].sort((a,b)=>a.y-b.y||a.x-b.x).forEach(p=>{const d=document.createElement('div');d.innerHTML=`<i style="background:${p.color}"></i>${p.name} (${p.x}, ${p.y}) ${p.w}x${p.h}`;if(p.id===sel)d.className='sel';d.onclick=()=>{sel=p.id;draw();list();info()};L.appendChild(d)})}
+function info(){const p=pieces.find(q=>q.id===sel);document.getElementById('info').textContent=p?`${p.name}\norigin ${p.x}, ${p.y}\nsize ${p.w} x ${p.h}\ncolour ${p.color}`:'Nothing selected.'}
+function push(){hist.push(JSON.stringify({p:pieces,j:joints}));if(hist.length>200)hist.shift()}
+function undo(){if(!hist.length)return;const s=JSON.parse(hist.pop());pieces=s.p;joints=s.j;draw();list();info()}
+cv.onpointerdown=e=>{const[cx,cy]=cell(e);const hit=[...pieces].reverse().find(p=>cx>=p.x&&cx<p.x+p.w&&cy>=p.y&&cy<p.y+p.h);sel=hit?hit.id:null;if(hit){push();drag={id:hit.id,dx:cx-hit.x,dy:cy-hit.y}}cv.setPointerCapture(e.pointerId);draw();list();info()};
+cv.onpointermove=e=>{if(!drag)return;const[cx,cy]=cell(e);const p=pieces.find(q=>q.id===drag.id);p.x=Math.max(OX,Math.min(OX+20-p.w,cx-drag.dx));p.y=Math.max(OY,Math.min(OY+28-p.h,cy-drag.dy));draw();info()};
+cv.onpointerup=()=>{drag=null;list()};
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();undo();return}
+ if(sel==null)return;const p=pieces.find(q=>q.id===sel);const st=e.shiftKey?5:1;let m=true;
+ if(e.key==='ArrowLeft')p.x-=st;else if(e.key==='ArrowRight')p.x+=st;else if(e.key==='ArrowUp')p.y-=st;else if(e.key==='ArrowDown')p.y+=st;else m=false;
+ if(m){push();e.preventDefault();draw();list();info()}});
+document.getElementById('grid').onclick=()=>{grid=!grid;draw()};
+document.getElementById('undo').onclick=undo;
+document.getElementById('reset').onclick=()=>{push();const o=JSON.parse(ORIGIN);pieces=o.p;joints=o.j;sel=null;draw();list();info()};
+document.getElementById('copy').onclick=()=>{const t=pieces.map(p=>`${p.name} origin (${p.x}, ${p.y}), size ${p.w}x${p.h} cells, colour ${p.color}`).concat(joints.map(j=>`${j.name} at (${j.x}, ${j.y})`)).join('\n');document.getElementById('out').value=t;navigator.clipboard&&navigator.clipboard.writeText(t).catch(()=>{})};
+draw();list();info();
+</script></body></html>
